@@ -1,11 +1,10 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const axios = require('axios');
 const validator = require('validator');
 const User = require('../models/userModel');
 const { validatePassword } = require('../utils/validator');
-
-// INITIALIZE TWILIO DIRECTLY HERE
-const twilio = require('../configs/twilio');
+const termiiConfig = require('../configs/termii');
 
 exports.signup = async (req, res) => {
   const {
@@ -89,24 +88,75 @@ exports.login = async (req, res) => {
     res.status(500).json({ message: "Server error during login" });
   }
 };
-// A. Request Reset OTP (Same as signup OTP, but for existing users)
+
+
+// --- FORGOT PASSWORD (REQUEST OTP) ---
 exports.requestPasswordReset = async (req, res) => {
   const { phone } = req.body;
   try {
     const user = await User.findByPhone(phone);
-    if (!user || user.length === 0) {
+    if (!user) {
       return res.status(404).json({ status: 'error', message: 'User not found' });
     }
 
-    await twilio.verify
-      .services(process.env.TWILIO_VERIFY_SERVICE_SID)
-      .verifications.create({ to: phone, channel: 'sms' });
+   const payload = {
+  api_key: termiiConfig.apiKey,
+  message_type: "NUMERIC",
+  to: phone.replace('+', ''), // Termii prefers no '+'
+  from: "N-Alert", 
+  channel: "dnd",
+  pin_attempts: 3,
+  pin_time_to_live: 10,
+  pin_length: 6,
+  pin_type: "NUMERIC", // Added from your error log
+  pin_placeholder: "< 123456 >",
+  message_text: "Your StockSave reset code is < 123456 >" // FIXED: changed 'message' to 'message_text'
+};
 
-    res.status(200).json({ status: 'success', message: 'Reset OTP sent' });
+
+
+    const response = await axios.post(`${termiiConfig.baseUrl}/api/sms/otp/send`, payload);
+
+    res.status(200).json({ 
+      status: 'success', 
+      message: 'Reset OTP sent', 
+      pinId: response.data.pinId 
+    });
   } catch (err) {
+    console.error("Termii Error:", err.response?.data || err.message);
     res.status(500).json({ status: 'error', message: 'Failed to send OTP' });
   }
 };
+
+// --- RESET PASSWORD (VERIFY OTP) ---
+exports.resetPassword = async (req, res) => {
+  const { phone, otp, pinId, newPassword } = req.body;
+  
+  try {
+    const verifyPayload = {
+      api_key: termiiConfig.apiKey,
+      pin_id: pinId,
+      pin: otp
+    };
+
+    const verification = await axios.post(`${termiiConfig.baseUrl}/api/sms/otp/verify`, verifyPayload);
+
+    if (verification.data.verified !== true) {
+      return res.status(400).json({ status: 'error', message: 'Invalid or expired OTP' });
+    }
+
+    const saltRounds = 12;
+    const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
+
+    await User.updatePassword(phone, newPasswordHash);
+    
+    res.status(200).json({ status: 'success', message: 'Password updated successfully' });
+  } catch (err) {
+    console.error("Verification Error:", err.response?.data || err.message);
+    res.status(500).json({ status: 'error', message: 'Reset failed' });
+  }
+};
+
 
 exports.getAccountSummary = async (req, res) => {
     try {
