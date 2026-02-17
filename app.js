@@ -50,6 +50,12 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 //app.use('/api/wallet', walletRoutes); // Handles Savings, Withdraw, & Dashboard Activity
 app.use('/api/test', testRoutes);
 
+// Automatically send anyone who visits the main link to the documentation
+app.get('/', (req, res) => {
+  res.redirect('/api-docs');
+});
+
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
