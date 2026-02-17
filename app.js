@@ -4,6 +4,7 @@ const app = express();
 const cors = require('cors');
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
+const swaggerDocument = require('./swagger.json');
 
 app.use(cors()); 
 
@@ -14,7 +15,9 @@ const swaggerSpec = swaggerJsdoc({
   definition: {
     openapi: '3.0.0',
     info: { title: 'My API', version: '1.0.0' },
-    servers: [{ url: `http://localhost:${process.env.PORT || 3000}` }],
+    servers: [{ url: `http://localhost:${process.env.PORT || 3000}` },
+                { url: 'https://auth-signup.onrender.com', description: 'Production' }
+    ],
     components: {
       securitySchemes: {
         bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }
@@ -39,7 +42,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/savings', savingsRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/payouts', payoutRoutes);
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 
 //app.use('/api/auth', authRoutes);      // Handles Signup, Login, Forgot Password
