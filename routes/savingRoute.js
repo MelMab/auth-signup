@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const authController = require('../controllers/authController');
 const savingsController = require('../controllers/savingsController');
 const { authenticate } = require('../middleware/authMiddleware'); // Import this!
 
@@ -13,7 +14,7 @@ const { authenticate } = require('../middleware/authMiddleware'); // Import this
  *       properties:
  *         user_id: { type: integer, example: 1 }
  *         amount: { type: number, example: 500.50 }
- *         method: { type: string, enum: ['Cash', 'Paystack', 'Transfer'], example: "Transfer" }
+ *         method: { type: string, enum: ['Cash', 'Paystack', 'Transfer'], example: "Cash" }
  *         reference: { type: string, example: "REF-123456" }
  */
 
@@ -60,6 +61,7 @@ const { authenticate } = require('../middleware/authMiddleware'); // Import this
 
 // Use authenticate to protect these routes
 router.post('/deposit', authenticate, savingsController.addSavings); 
-router.get('/history/:userId', authenticate, savingsController.getHistory); 
+router.get('/history/:userId', authenticate, authController.getAccountSummary);
+
 
 module.exports = router;

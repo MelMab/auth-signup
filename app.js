@@ -41,6 +41,7 @@ app.use('/api/inventory', inventoryRoutes);
 app.use('/api/payouts', payoutRoutes);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
+
 //app.use('/api/auth', authRoutes);      // Handles Signup, Login, Forgot Password
 //app.use('/api/plans', planRoutes);    // Handles Plan Selection & Updates
 //app.use('/api/wallet', walletRoutes); // Handles Savings, Withdraw, & Dashboard Activity

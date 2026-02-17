@@ -17,7 +17,7 @@ const User = {
   
   findById: async (id) => {
     const [rows] = await db.execute(
-      "SELECT id, full_name, email, phone, account_type, balance, created_at FROM users WHERE id = ?", 
+      "SELECT id, first_name, last_name, email, phone, account_type, balance, created_at FROM users WHERE id = ?", 
       [id]
     );
     return rows[0];
@@ -27,11 +27,11 @@ const User = {
   createUser: async (data) => {
     const query = `
       INSERT INTO users 
-      (full_name, email, phone, password_hash, account_type, balance)
-      VALUES (?, ?, ?, ?, ?, ?)
+      (first_name, last_name, email, phone, password_hash, account_type, balance)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
     const [result] = await db.execute(query, [
-      data.full_name, data.email, data.phone, data.password_hash,
+      data.first_name, data.last_name, data.email, data.phone, data.password_hash,
       data.account_type, 
       data.balance || 0.00
     ]);
