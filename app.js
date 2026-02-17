@@ -1,37 +1,52 @@
 require('dotenv').config();
 const express = require('express');
-const app = express();
 const cors = require('cors');
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
-const swaggerDocument = require('./swagger.json');
 
+const app = express();
+
+// Middleware
 app.use(cors()); 
-
-
 app.use(express.json());
 
-const swaggerSpec = swaggerJsdoc({
+// Swagger Configuration
+const swaggerOptions = {
   definition: {
     openapi: '3.0.0',
-    info: { title: 'My API', version: '1.0.0' },
-    servers: [{ url: `http://localhost:${process.env.PORT || 3000}` },
-                { url: 'https://auth-signup.onrender.com', description: 'Production' }
+    info: {
+      title: 'StockSave Auth API',
+      version: '1.0.0',
+      description: 'API for User Signup, Login, and Profile Management',
+    },
+    servers: [
+      {
+        url: 'https://auth-signup.onrender.com',
+        description: 'Production Server',
+      },
+      {
+        url: `http://localhost:${process.env.PORT || 3000}`,
+        description: 'Local Server',
+      },
     ],
     components: {
       securitySchemes: {
-        bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }
-      }
-    }
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
+    },
   },
-  apis: ['./routes/*.js'], // This looks inside your routes folder for documentation
-});
+  // Points to your route files to read the JSDoc comments
+  apis: ['./routes/*.js'], 
+};
 
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
-
-
+// Routes
 const authRoutes = require('./routes/authRoutes');
-
 const testRoutes = require('./routes/testRoute');
 const savingsRoutes = require('./routes/savingRoute');
 const inventoryRoutes = require('./routes/inventory');
@@ -42,22 +57,19 @@ app.use('/api/auth', authRoutes);
 app.use('/api/savings', savingsRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/payouts', payoutRoutes);
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-
-
-//app.use('/api/auth', authRoutes);      // Handles Signup, Login, Forgot Password
-//app.use('/api/plans', planRoutes);    // Handles Plan Selection & Updates
-//app.use('/api/wallet', walletRoutes); // Handles Savings, Withdraw, & Dashboard Activity
 app.use('/api/test', testRoutes);
 
-// Automatically send anyone who visits the main link to the documentation
+// Swagger UI Route
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// Root Redirect to Documentation
 app.get('/', (req, res) => {
   res.redirect('/api-docs');
 });
 
-
+// Server Initialization
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-  console.log(`Docs: http://localhost:${PORT}/api-docs`); 
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Docs available at: http://localhost:${PORT}/api-docs`); 
 });
