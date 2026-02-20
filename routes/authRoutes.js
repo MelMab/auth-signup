@@ -67,6 +67,23 @@ router.post('/signup', authController.signup);
  */
 router.post('/login', authController.login);
 
+
+/**
+ * @swagger
+ * /api/auth/account-summary:
+ *   get:
+ *     summary: Get current user account details
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Account summary retrieved successfully
+ */
+// Use 'authenticate' to ensure the request has a valid JWT
+router.get('/account-summary', authenticate, authController.getAccountSummary);
+
+
 /**
  * @swagger
  * /api/auth/forgot-password:

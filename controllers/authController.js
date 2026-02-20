@@ -3,13 +3,15 @@ const jwt = require('jsonwebtoken');
 const validator = require('validator');
 const User = require('../models/userModel');
 const { validatePassword } = require('../utils/validator');
+const db = require('../configs/connect');
+
 const twilio = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 
 exports.signup = async (req, res) => {
   const { first_name, last_name, email, phone, password, account_type } = req.body;
   try {
     if (!validator.isEmail(email)) return res.status(400).json({ message: "Invalid email format" });
-    
+
     const passwordError = validatePassword(password);
     if (passwordError) return res.status(400).json({ message: passwordError });
 
@@ -63,17 +65,14 @@ exports.requestPasswordReset = async (req, res) => {
 exports.resetPassword = async (req, res) => {
   const { phone, otp, newPassword } = req.body;
   try {
-    // 1. Validate new password strength
     const passwordError = validatePassword(newPassword);
     if (passwordError) return res.status(400).json({ message: passwordError });
 
-    // 2. Verify OTP with Twilio
     const check = await twilio.verify.v2.services(process.env.TWILIO_VERIFY_SERVICE_SID)
       .verificationChecks.create({ to: phone, code: otp });
 
     if (check.status !== 'approved') return res.status(400).json({ message: 'Invalid or expired OTP' });
 
-    // 3. Update Password
     const newPasswordHash = await bcrypt.hash(newPassword, 12);
     await User.updatePassword(phone, newPasswordHash);
 
@@ -83,19 +82,27 @@ exports.resetPassword = async (req, res) => {
   }
 };
 
-/*exports.getAccountSummary = async (req, res) => {
+// GET /api/auth/me - Returns logged in user's profile
+exports.getAccountSummary = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
-    if (!user) return res.status(404).json({ message: "User not found" });
+    const userId = req.user.id;
+    const [rows] = await db.execute(
+      'SELECT id, first_name, last_name, email, phone, account_type, status, balance, created_at FROM users WHERE id = ?',
+      [userId]
+    );
 
-    res.status(200).json({ 
-      status: 'success', 
-      data: { ...user, active_plans: 1 } 
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({
+      status: 'success',
+      data: rows[0]
     });
-  } catch (err) {
-    res.status(500).json({ message: "Error fetching summary" });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch account: " + error.message });
   }
-};*/
+};
 
 exports.deleteAccount = async (req, res) => {
   try {

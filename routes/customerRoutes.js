@@ -50,6 +50,12 @@ router.get('/summary', customer.getCustomerDashboard);
  */
 router.post('/deposit', savings.addSavings); 
 
+
+//  Paystack routes - NO auth middleware (Paystack calls these, not the user)
+router.post('/webhook', savings.handlePaystackWebhook);
+router.get('/verify', savings.verifyPaystackPayment);
+
+
 // --- SIDEBAR & ACTION ROUTES ---
 
 //router.get('/plans', customer.managePlans); 

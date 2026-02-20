@@ -61,9 +61,19 @@ const { authenticate, authorize } = require('../middleware/authMiddleware');
  */
 
 router.post('/deposit', authenticate, authorize(['Customer']), savingsController.addSavings);
+
+// 2. VERIFY REDIRECT (User returns here after paying)
+router.get('/verify', authenticate, savingsController.verifyPaystackPayment);
+
+
+router.post('/webhook', savingsController.handlePaystackWebhook);
+
+
+// 4. HISTORY & RECENT
 router.get('/history/:userId', authenticate, savingsController.getSavingsHistory);
 router.get('/recent', authenticate, savingsController.getRecentDeposits);
-router.get('/verify', savingsController.verifyPaystackPayment);
+
+// 5. ADMIN MANUAL UPDATE
 router.patch('/update-status', authenticate, authorize(['Owner']), savingsController.updateDepositStatus);
 
 module.exports = router;
