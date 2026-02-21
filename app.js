@@ -8,11 +8,12 @@ const swaggerUi = require('swagger-ui-express');
 const authRoutes = require('./routes/authRoutes');
 const testRoutes = require('./routes/testRoute');
 const savingsRoutes = require('./routes/savingRoute');
-const inventoryRoutes = require('./routes/inventory');
+const inventoryRoutes = require('./routes/inventoryRoutes');
 const payoutRoutes = require('./routes/payoutRoute');
 const customerRoutes = require('./routes/customerRoutes');
 const ownerRoutes = require('./routes/ownerRoutes');
 const planRoutes = require('./routes/planRoutes');
+
 
 
 const app = express();

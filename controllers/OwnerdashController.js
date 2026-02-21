@@ -1,6 +1,5 @@
 const db = require('../configs/connect');
 
-
 exports.getDashboardStats = async (req, res) => {
   try {
     // 1. Total System Savings (Uses your 'balance' column)
