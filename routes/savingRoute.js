@@ -3,79 +3,26 @@ const router = express.Router();
 const savingsController = require('../controllers/savingsController');
 const { authenticate, authorize } = require('../middleware/authMiddleware');
 
-/**
- * @swagger
- * /api/savings/history/{userId}:
- *   get:
- *     summary: Get full deposit history for a user
- *     description: Customers can only see their own history. Owners can see any user's history.
- *     tags: [Savings]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: userId
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: Array of transaction objects
- *       403:
- *         description: Unauthorized to view this user's history
- */
-
-/**
- * @swagger
- * /api/savings/recent:
- *   get:
- *     summary: Get the 5 most recent deposits
- *     description: Returns the latest 5 transactions. Owners see system-wide; Customers see their own.
- *     tags: [Savings]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: List of the 5 most recent transactions
- */
-
-/**
- * @swagger
- * /api/savings/verify:
- *   get:
- *     summary: Verify a Paystack transaction
- *     description: Confirms payment status with Paystack and updates user balance.
- *     tags: [Savings]
- *     parameters:
- *       - in: query
- *         name: reference
- *         required: true
- *         description: The Paystack transaction reference
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Payment successfully verified and credited
- *       400:
- *         description: Invalid reference or payment failed
- */
-
-router.post('/deposit', authenticate, authorize(['Customer']), savingsController.addSavings);
-
-// 2. VERIFY REDIRECT (User returns here after paying)
-router.get('/verify', authenticate, savingsController.verifyPaystackPayment);
-
-
+// 1. PUBLIC ROUTES (No Auth)
 router.post('/webhook', savingsController.handlePaystackWebhook);
+router.get('/verify', savingsController.verifyPaystackPayment);
 
+// 2. AUTHENTICATED ROUTES (Must be logged in)
+router.use(authenticate);
 
-// 4. HISTORY & RECENT
-router.get('/history/:userId', authenticate, savingsController.getSavingsHistory);
-router.get('/recent', authenticate, savingsController.getRecentDeposits);
+// 3. OWNER ONLY ROUTES
+// Move this ABOVE the Customer restriction
+router.patch('/update-status', authorize(['Owner']), savingsController.updateDepositStatus);
 
-// 5. ADMIN MANUAL UPDATE
-router.patch('/update-status', authenticate, authorize(['Owner']), savingsController.updateDepositStatus);
+// 4. CUSTOMER ONLY ROUTES
+// Now restrict everything else to Customers
+router.use(authorize(['Customer']));
+
+router.post('/deposit', savingsController.addSavings);
+router.get('/history', savingsController.getSavingsHistory);
+router.get('/recent', savingsController.getRecentDeposits);
+router.get('/redeem', savingsController.getRedeemScreen);
+router.get('/banks', savingsController.getBankList);
+router.post('/withdraw', savingsController.submitWithdrawal);
 
 module.exports = router;
-
-

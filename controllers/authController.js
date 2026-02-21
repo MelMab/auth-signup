@@ -28,7 +28,8 @@ exports.signup = async (req, res) => {
 };
 
 exports.login = async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, remember_me } = req.body; // ← add remember_me
+
   try {
     const user = await User.findByEmail(email);
     if (!user) return res.status(400).json({ message: "Invalid credentials or account inactive" });
@@ -36,12 +37,20 @@ exports.login = async (req, res) => {
     const match = await bcrypt.compare(password, user.password_hash);
     if (!match) return res.status(400).json({ message: "Invalid credentials" });
 
+    // ← Remember Me = 30 days, otherwise 1 day
+    const expiresIn = remember_me ? '30d' : '1d';
+
     const token = jwt.sign(
       { id: user.id, email: user.email, account_type: user.account_type },
       process.env.JWT_SECRET,
-      { expiresIn: '1d' }
+      { expiresIn }
     );
-    res.status(200).json({ message: "Login successful", token });
+
+    res.status(200).json({ 
+      message: "Login successful", 
+      token,
+      expires_in: expiresIn // ← tells frontend how long token lasts
+    });
   } catch (error) {
     res.status(500).json({ message: "Server error during login" });
   }
