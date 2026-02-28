@@ -52,48 +52,6 @@ exports.getAlertSummary = async (req, res) => {
   }
 };
 
-// ─── GET /api/notifications/feed ─────────────────────────────────────────────
-exports.getOwnerFeed = async (req, res) => {
-  const userId   = req.user.id;
-  const type     = req.query.type   || null;
-  const limitNum = parseInt(req.query.limit) || 20;
-  const page     = parseInt(req.query.page)  || 1;
-  const offset   = (page - 1) * limitNum;
-
-  try {
-    let where    = 'WHERE user_id = ?';
-    const params = [userId];
-    if (type) { where += ' AND type = ?'; params.push(type); }
-
-    const [[{ total }]] = await db.execute(
-      `SELECT COUNT(*) AS total FROM notifications ${where}`, params
-    );
-    const [rows] = await db.execute(
-      `SELECT id, type, title, message, is_read, reference_id, reference_type, created_at
-       FROM notifications ${where}
-       ORDER BY created_at DESC
-       LIMIT ${limitNum} OFFSET ${offset}`,
-      params
-    );
-    const [[unreadRow]] = await db.execute(
-      `SELECT COUNT(*) AS count FROM notifications WHERE user_id = ? AND is_read = 0`, [userId]
-    );
-    const [[weekRow]] = await db.execute(
-      `SELECT COUNT(*) AS count FROM notifications
-       WHERE user_id = ? AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)`, [userId]
-    );
-
-    res.status(200).json({
-      status: 'success',
-      stats: { unread: unreadRow.count, this_week: weekRow.count, total },
-      pagination: { page, limit: limitNum, total, total_pages: Math.ceil(total / limitNum) },
-      data: rows
-    });
-  } catch (error) {
-    res.status(500).json({ status: 'error', message: error.message });
-  }
-};
-
 // ─── GET /api/notifications/new-users ────────────────────────────────────────
 exports.getNewUsers = async (req, res) => {
   const days     = parseInt(req.query.days)  || 7;

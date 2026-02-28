@@ -1,6 +1,7 @@
+-- Active: 1771341694077@@stocksave-stocksave.f.aivencloud.com@23256@defaultdb
 const express = require('express');
 const router  = express.Router();
-const n = require('../controllers/notificationsController');
+const n = require('../controllers/notificationController');
 const { authenticate, authorize } = require('../middleware/authMiddleware');
 
 /**
@@ -40,49 +41,6 @@ router.use(authenticate, authorize(['Owner']));
  *                 total_alerts: 40
  */
 router.get('/summary', n.getAlertSummary);
-
-/**
- * @swagger
- * /api/notifications/feed:
- *   get:
- *     summary: Owner personal notification feed
- *     description: >
- *       Returns stored notifications for the owner (deposit confirmations, withdrawal alerts, booking updates).
- *       Filter by type using ?type=withdrawal_alert|deposit_confirmed|booking_update|general.
- *     tags: [Notifications]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - { in: query, name: type, schema: { type: string, enum: [withdrawal_alert, deposit_confirmed, booking_update, stock_alert, general] }, description: Filter by notification type }
- *       - { in: query, name: page,  schema: { type: integer, default: 1 } }
- *       - { in: query, name: limit, schema: { type: integer, default: 20 } }
- *     responses:
- *       200:
- *         description: Paginated feed with stats.unread, stats.this_week, stats.total
- *         content:
- *           application/json:
- *             example:
- *               status: success
- *               stats:
- *                 unread: 5
- *                 this_week: 12
- *                 total: 34
- *               pagination:
- *                 page: 1
- *                 limit: 20
- *                 total: 34
- *                 total_pages: 2
- *               data:
- *                 - id: 10
- *                   type: withdrawal_alert
- *                   title: New Withdrawal Request
- *                   message: "John Gabriel withdrew ₦5,000. Reference: WDR-abc123."
- *                   is_read: 0
- *                   reference_id: 5
- *                   reference_type: user
- *                   created_at: "2026-02-26T10:00:00.000Z"
- */
-router.get('/feed', n.getOwnerFeed);
 
 /**
  * @swagger
