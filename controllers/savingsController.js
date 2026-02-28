@@ -2,10 +2,7 @@ const db = require('../configs/connect');
 const axios = require('axios');
 const { v4: uuidv4 } = require('uuid');
 
-// ⚠️ This must be defined before any function that uses it
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
-
-// ─── DEPOSITS ────────────────────────────────────────────────────────────────
 
 // POST /api/savings/deposit
 exports.addSavings = async (req, res) => {
@@ -379,13 +376,24 @@ exports.getBankList = async (req, res) => {
 // POST /api/savings/withdraw
 exports.submitWithdrawal = async (req, res) => {
   const userId = req.user.id;
-  const { amount, account_name, account_number, bank_code } = req.body;
+  const { amount, method, account_name, account_number, bank_code } = req.body;
+
+  // method: 'Bank Transfer' or 'Cash Pickup'
+  const withdrawalMethod = method || 'Bank Transfer';
+  const validMethods = ['Bank Transfer', 'Cash Pickup'];
+  if (!validMethods.includes(withdrawalMethod)) {
+    return res.status(400).json({ error: 'method must be Bank Transfer or Cash Pickup' });
+  }
 
   if (!amount || amount < 100) {
     return res.status(400).json({ error: 'Minimum withdrawal is ₦100' });
   }
-  if (!account_name || !account_number || !bank_code) {
-    return res.status(400).json({ error: 'account_name, account_number and bank_code are required' });
+
+  // Bank Transfer requires bank details; Cash Pickup does not
+  if (withdrawalMethod === 'Bank Transfer') {
+    if (!account_name || !account_number || !bank_code) {
+      return res.status(400).json({ error: 'account_name, account_number and bank_code are required for Bank Transfer' });
+    }
   }
 
   const conn = await db.getConnection();
@@ -403,6 +411,7 @@ exports.submitWithdrawal = async (req, res) => {
     }
 
     const transferRef = `WDR-${uuidv4()}`;
+    const txMethod = withdrawalMethod === 'Cash Pickup' ? 'Cash' : 'Transfer';
 
     // Deduct balance and record as Completed
     await conn.execute(
@@ -410,8 +419,8 @@ exports.submitWithdrawal = async (req, res) => {
     );
     await conn.execute(
       `INSERT INTO transactions (user_id, amount, type, method, status, reference)
-       VALUES (?, ?, 'Withdrawal', 'Paystack', 'Completed', ?)`,
-      [userId, amount, transferRef]
+       VALUES (?, ?, 'Withdrawal', ?, 'Completed', ?)`,
+      [userId, amount, txMethod, transferRef]
     );
 
     await conn.commit();
@@ -428,7 +437,7 @@ exports.submitWithdrawal = async (req, res) => {
         const { first_name, last_name } = userInfo[0];
         const formattedAmount = parseFloat(amount).toLocaleString('en-NG');
         const values = owners.map(o =>
-          `(${o.id}, 'withdrawal_alert', 'New Withdrawal Request', '${first_name} ${last_name} withdrew \u20a6${formattedAmount}. Reference: ${transferRef}.', ${userId}, 'user')`
+          `(${o.id}, 'withdrawal_alert', 'New Withdrawal Request', '${first_name} ${last_name} requested a \u20a6${formattedAmount} withdrawal via ${withdrawalMethod}. Reference: ${transferRef}.', ${userId}, 'user')`
         ).join(',');
         await db.execute(
           `INSERT INTO notifications (user_id, type, title, message, reference_id, reference_type) VALUES ${values}`
