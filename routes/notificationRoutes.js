@@ -1,4 +1,3 @@
--- Active: 1771341694077@@stocksave-stocksave.f.aivencloud.com@23256@defaultdb
 const express = require('express');
 const router  = express.Router();
 const n = require('../controllers/notificationController');
