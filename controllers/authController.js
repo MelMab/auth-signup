@@ -4,7 +4,7 @@ const validator = require('validator');
 const User = require('../models/userModel');
 const { validatePassword } = require('../utils/validator');
 const db = require('../configs/connect');
-const { sendResetCode } = require('../utils/emailService');
+const { sendResetCode } = require('../utils/emailservice');
 
 exports.signup = async (req, res) => {
   const { first_name, last_name, email, phone, password, account_type } = req.body;
